@@ -23,12 +23,25 @@ struct KinFuApp
             kinfu.iteractive_mode_ = !kinfu.iteractive_mode_;
     }
 
-    KinFuApp(OpenNISource& source) : exit_ (false),  iteractive_mode_(false), capture_ (source), pause_(false)
+    // KinFuApp(OpenNISource& source) : exit_ (false),  iteractive_mode_(false), capture_ (source), pause_(false)
+    // {
+    //     KinFuParams params = KinFuParams::default_params();
+    //     kinfu_ = KinFu::Ptr( new KinFu(params) );
+
+    //     capture_.setRegistration(true);
+
+    //     cv::viz::WCube cube(cv::Vec3d::all(0), cv::Vec3d(params.volume_size), true, cv::viz::Color::apricot());
+    //     viz.showWidget("cube", cube, params.volume_pose);
+    //     viz.showWidget("coor", cv::viz::WCoordinateSystem(0.1));
+    //     viz.registerKeyboardCallback(KeyboardCallback, this);
+    // }
+
+    KinFuApp(OpenNI2Source& source) : exit_ (false),  iteractive_mode_(false), capture_v2_ (source), pause_(false)
     {
         KinFuParams params = KinFuParams::default_params();
         kinfu_ = KinFu::Ptr( new KinFu(params) );
 
-        capture_.setRegistration(true);
+        //capture_v2_.setRegistration(true);
 
         cv::viz::WCube cube(cv::Vec3d::all(0), cv::Vec3d(params.volume_size), true, cv::viz::Color::apricot());
         viz.showWidget("cube", cube, params.volume_pose);
@@ -75,7 +88,8 @@ struct KinFuApp
 
         for (int i = 0; !exit_ && !viz.wasStopped(); ++i)
         {
-            bool has_frame = capture_.grab(depth, image);
+            //bool has_frame = capture_.grab(depth, image);
+            bool has_frame = capture_v2_.grab(depth, image);
             if (!has_frame)
                 return std::cout << "Can't grab" << std::endl, false;
 
@@ -113,7 +127,8 @@ struct KinFuApp
 
     bool pause_ /*= false*/;
     bool exit_, iteractive_mode_;
-    OpenNISource& capture_;
+    //OpenNISource& capture_;
+    OpenNI2Source& capture_v2_;
     KinFu::Ptr kinfu_;
     cv::viz::Viz3d viz;
 
@@ -135,8 +150,10 @@ int main (int argc, char* argv[])
     if(cuda::checkIfPreFermiGPU(device))
         return std::cout << std::endl << "Kinfu is not supported for pre-Fermi GPU architectures, and not built for them by default. Exiting..." << std::endl, 1;
 
-    OpenNISource capture;
-    capture.open (0);
+    // OpenNISource capture;
+    // capture.open (0);
+    OpenNI2Source *capture_v2 = new OpenNI2Source();
+    capture_v2->open();
     //capture.open("d:/onis/20111013-224932.oni");
     //capture.open("d:/onis/reg20111229-180846.oni");
     //capture.open("d:/onis/white1.oni");
@@ -145,7 +162,8 @@ int main (int argc, char* argv[])
     //capture.open("d:/onis/20111013-224551.oni");
     //capture.open("d:/onis/20111013-224719.oni");
 
-    KinFuApp app (capture);
+    //KinFuApp app (capture);
+    KinFuApp app(*capture_v2);
 
     // executing
     try { app.execute (); }

@@ -17,8 +17,16 @@ include(cmake/Targets.cmake)
 # ---[ find dependencies
 find_package(OpenCV 2.4.8 REQUIRED COMPONENTS core viz highgui)
 find_package(CUDA 5.0 REQUIRED)
+set(OPENNI2_INCLUDE_DIR /home/gingerli/Tools/OpenNI2-Orbbec/Linux/OpenNI-Linux-x64-2.3/Include/)
+set(OPENNI2_LIBRARY 
+  /home/gingerli/Tools/OpenNI2-Orbbec/Linux/OpenNI-Linux-x64-2.3/Tools/libOpenNI2.so
+  /home/gingerli/Tools/OpenNI2-Orbbec/Linux/OpenNI-Linux-x64-2.3/Tools/OpenNI2/Drivers/libPSLink.so 
+  /home/gingerli/Tools/OpenNI2-Orbbec/Linux/OpenNI-Linux-x64-2.3/Tools/OpenNI2/Drivers/libOniFile.so 
+  /home/gingerli/Tools/OpenNI2-Orbbec/Linux/OpenNI-Linux-x64-2.3/Tools/OpenNI2/Drivers/liborbbec.so
+)
 find_package(OpenNI REQUIRED)
-include_directories(${OpenCV_INCLUDE_DIRS} ${CUDA_INCLUDE_DIRS} ${OPENNI_INCLUDE_DIR})
+#include_directories(${OpenCV_INCLUDE_DIRS} ${CUDA_INCLUDE_DIRS} ${OPENNI_INCLUDE_DIR})
+include_directories(${OpenCV_INCLUDE_DIRS} ${CUDA_INCLUDE_DIRS} ${OPENNI_INCLUDE_DIR} ${OPENNI2_INCLUDE_DIR})
 
 # ---[ misc settings
 if(USE_PROJECT_FOLDERS)

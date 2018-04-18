@@ -2,6 +2,7 @@
 #undef _CRT_SECURE_NO_DEPRECATE
 #include "XnCppWrapper.h"
 #include <io/capture.hpp>
+#include <iostream>
 
 using namespace std;
 using namespace xn;
@@ -334,4 +335,146 @@ bool kfusion::OpenNISource::setRegistration (bool value)
 
     getParams ();
     return rc == XN_STATUS_OK;
+}
+
+kfusion::OpenNI2Source::OpenNI2Source()
+{
+
+}
+
+kfusion::OpenNI2Source::~OpenNI2Source()
+{
+    mColorStream.destroy();
+    mDepthStream.destroy();
+    mDevice.close();
+    openni::OpenNI::shutdown();
+}
+
+int kfusion::OpenNI2Source::open()
+{
+    // ********** OpenNI Setup *********
+    // 1. Initial OpenNI
+    if( openni::OpenNI::initialize() != openni::STATUS_OK )
+    {
+      cerr << "OpenNI Initial Error: " 
+           << openni::OpenNI::getExtendedError() << endl;
+      return -1;
+    }
+
+    // 2. Open Device
+    if( mDevice.open( openni::ANY_DEVICE ) != openni::STATUS_OK )
+    {
+      cerr << "Can't Open Device: " 
+           << openni::OpenNI::getExtendedError() << endl;
+      return -1;
+    }
+
+    // 3. Create color stream
+    if( mDevice.hasSensor( openni::SENSOR_COLOR ) )
+    {
+        if( mColorStream.create( mDevice, openni::SENSOR_COLOR ) == openni::STATUS_OK )
+        {
+        // 3a. set video mode
+        openni::VideoMode mMode;
+        mMode.setResolution( 640, 480 );
+        mMode.setFps( 30 );
+        mMode.setPixelFormat( openni::PIXEL_FORMAT_RGB888 );
+    
+        if( mColorStream.setVideoMode( mMode) != openni::STATUS_OK )
+        {
+            cout << "Can't apply VideoMode: " 
+                << openni::OpenNI::getExtendedError() << endl;
+        }
+    
+        // 3b. image registration
+        if( mDevice.isImageRegistrationModeSupported(
+            openni::IMAGE_REGISTRATION_DEPTH_TO_COLOR ) )
+        {
+            mDevice.setImageRegistrationMode( openni::IMAGE_REGISTRATION_DEPTH_TO_COLOR );
+        }
+        }
+        else
+        {
+            cerr << "Can't create color stream on device: " 
+                    << openni::OpenNI::getExtendedError() << endl;
+            return -1;
+        }
+    }
+
+    // 4. Create depth stream
+    if( mDevice.hasSensor( openni::SENSOR_DEPTH ) )
+    {
+        if( mDepthStream.create( mDevice, openni::SENSOR_DEPTH ) == openni::STATUS_OK )
+        {
+            // 4a. set video mode
+            openni::VideoMode mMode;
+            mMode.setResolution( 640, 480 );
+            mMode.setFps( 30 );
+            mMode.setPixelFormat( openni::PIXEL_FORMAT_DEPTH_1_MM );
+        
+            if( mDepthStream.setVideoMode( mMode) != openni::STATUS_OK )
+            {
+                cout << "Can't apply VideoMode: "
+                    << openni::OpenNI::getExtendedError() << endl;
+            }
+        }
+        else
+        {
+            cerr << "Can't create depth stream on device: "
+                << openni::OpenNI::getExtendedError() << endl;
+            return -1;
+        }
+    }
+    else
+    {
+        cerr << "ERROR: This device does not have depth sensor" << endl;
+        return -1;
+    }
+
+    mColorStream.start();
+    mDepthStream.start();
+}
+
+bool kfusion::OpenNI2Source::grab(cv::Mat &depth, cv::Mat &image)
+{
+    if ( mColorStream.isValid() )
+    {
+        if ( mColorStream.readFrame( &mColorFrame ) == openni::STATUS_OK )
+        {
+            const cv::Mat mImageRGB(
+                mColorFrame.getHeight(), mColorFrame.getWidth(),
+                CV_8UC3, (void*)mColorFrame.getData() );
+
+            cv::flip(mImageRGB, mImageRGB, 1);
+            
+            mImageRGB.copyTo(image);
+        }
+    }
+    else 
+    {
+        return false;
+    }
+
+    if ( mDepthStream.isValid() )
+    {
+        if( mDepthStream.readFrame( &mDepthFrame ) == openni::STATUS_OK )
+        {
+            const cv::Mat mImageDepth(
+                mDepthFrame.getHeight(), mDepthFrame.getWidth(),
+                CV_16UC1, (void*)mDepthFrame.getData() );
+
+            // cv::Mat mScaledDepth;
+            // mImageDepth.convertTo( mScaledDepth, CV_8U, 255.0 / mDepthStream.getMaxPixelValue() );
+
+            cv::flip(mImageDepth, mImageDepth, 1);
+
+            mImageDepth.copyTo(depth);
+        }
+    }
+    else 
+    {
+        return false;
+    }
+
+    return true;
 }

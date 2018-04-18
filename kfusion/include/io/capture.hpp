@@ -4,6 +4,8 @@
 #include <opencv2/core/core.hpp>
 #include <string>
 
+#include <OpenNI.h>
+
 namespace kfusion
 {
     class KF_EXPORTS OpenNISource
@@ -38,5 +40,19 @@ namespace kfusion
         cv::Ptr<Impl> impl_;
         void getParams ();
 
+    };
+
+    class KF_EXPORTS OpenNI2Source
+    {
+    public:
+        OpenNI2Source();
+        ~OpenNI2Source();
+
+        int open();//int device);
+        bool grab(cv::Mat &depth, cv::Mat &image);
+    private:
+        openni::Device mDevice; 
+        openni::VideoStream mColorStream, mDepthStream;
+        openni::VideoFrameRef mColorFrame, mDepthFrame;
     };
 }
